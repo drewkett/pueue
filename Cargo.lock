@@ -1282,7 +1282,7 @@ dependencies = [
 [[package]]
 name = "pueue-lib"
 version = "0.18.1"
-source = "git+https://github.com/drewkett/pueue-lib?branch=follow-lines#c6c02a9389a08a46b6814d7d367044e27d315f16"
+source = "git+https://github.com/drewkett/pueue-lib?branch=working#d8df4338efeb072874be33999be3e9381c9d1fd3"
 dependencies = [
  "async-std",
  "async-tls",
@@ -1294,7 +1294,6 @@ dependencies = [
  "log",
  "rand",
  "rcgen",
- "rev_lines",
  "rustls",
  "serde",
  "serde_cbor",
@@ -1424,12 +1423,6 @@ checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi",
 ]
-
-[[package]]
-name = "rev_lines"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18eb52b6664d331053136fcac7e4883bdc6f5fc04a6aab3b0f75eafb80ab88b3"
 
 [[package]]
 name = "ring"
