@@ -322,6 +322,10 @@ pub enum SubCommand {
         /// Show stderr instead of stdout.
         #[clap(short, long)]
         err: bool,
+
+        /// Only print the last X lines of the output before following
+        #[clap(short, long)]
+        lines: Option<usize>,
     },
 
     /// Wait until tasks are finished. This can be quite useful for scripting.
