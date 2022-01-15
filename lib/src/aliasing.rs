@@ -12,7 +12,7 @@ use crate::platform::directories::get_config_directories;
 pub fn get_aliases() -> Result<HashMap<String, String>, Error> {
     // Go through all config directories and check for a alias file.
     let mut alias_file_path = None;
-    for directory in get_config_directories()? {
+    for directory in get_config_directories() {
         let path = directory.join("pueue_aliases.yml");
         if path.exists() {
             alias_file_path = Some(path);
@@ -34,7 +34,7 @@ pub fn get_aliases() -> Result<HashMap<String, String>, Error> {
     alias_file.read_to_string(&mut content)?;
 
     serde_yaml::from_str(&content).map_err(|err| {
-        Error::ConfigDeserialization(format!("Failed to read alias configuration file:\n{}", err))
+        Error::ConfigDeserialization(format!("Failed to read alias configuration file:\n{err}"))
     })
 }
 
@@ -48,7 +48,7 @@ pub fn insert_alias(command: String) -> String {
 
     let aliases = match get_aliases() {
         Err(err) => {
-            warn!("Failed to open aliases file: {}", err);
+            warn!("Failed to open aliases file: {err}");
             return command;
         }
         Ok(aliases) => aliases,

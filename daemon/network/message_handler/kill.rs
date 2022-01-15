@@ -31,11 +31,10 @@ pub fn kill(message: KillMessage, sender: &Sender<Message>, state: &SharedState)
                 &state,
             ),
             TaskSelection::Group(group) => create_success_message(format!(
-                "Sending signal {} to all running tasks of group {}.",
-                signal, group
+                "Sending signal {signal} to all running tasks of group {group}.",
             )),
             TaskSelection::All => {
-                create_success_message(format!("Sending signal {} to all running tasks.", signal))
+                create_success_message(format!("Sending signal {signal} to all running tasks."))
             }
         }
     } else {
@@ -47,10 +46,11 @@ pub fn kill(message: KillMessage, sender: &Sender<Message>, state: &SharedState)
                 &state,
             ),
             TaskSelection::Group(group) => create_success_message(format!(
-                "All tasks of group \"{}\" are being killed.",
-                group
+                "All tasks of group \"{group}\" are being killed. The group will also be paused!!!"
             )),
-            TaskSelection::All => create_success_message("All tasks are being killed."),
+            TaskSelection::All => {
+                create_success_message("All tasks are being killed. All groups will be paused!!!")
+            }
         }
     }
 }

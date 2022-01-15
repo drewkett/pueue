@@ -30,6 +30,7 @@ pub fn handle_message(message: Message, sender: &Sender<Message>, state: &Shared
         Message::Clean(message) => clean::clean(message, state),
         Message::Edit(message) => edit::edit(message, state),
         Message::EditRequest(task_id) => edit::edit_request(task_id, state),
+        Message::EditRestore(task_id) => edit::edit_restore(task_id, state),
         Message::Enqueue(message) => enqueue::enqueue(message, state),
         Message::Group(message) => group::group(message, sender, state),
         Message::Kill(message) => kill::kill(message, sender, state),
@@ -67,8 +68,7 @@ fn ok_or_failure_message<T, E: Display>(result: Result<T, E>) -> Result<T, Messa
     match result {
         Ok(inner) => Ok(inner),
         Err(error) => Err(create_failure_message(format!(
-            "Failed to save state. This is a bug: {}",
-            error
+            "Failed to save state. This is a bug: {error}"
         ))),
     }
 }
@@ -101,11 +101,8 @@ mod fixtures {
 
     pub fn get_settings() -> (Settings, TempDir) {
         let tempdir = TempDir::new().expect("Failed to create test pueue directory");
-        let mut settings: Settings = Settings::default_config()
-            .expect("Failed to get default config")
-            .try_into()
-            .expect("Failed to get test settings");
-        settings.shared.pueue_directory = tempdir.path().to_owned();
+        let mut settings = Settings::default();
+        settings.shared.pueue_directory = Some(tempdir.path().to_owned());
 
         (settings, tempdir)
     }

@@ -35,23 +35,14 @@ mod task_handler;
 /// Since the threads own the same global space, this would crash.
 pub async fn run(config_path: Option<PathBuf>, test: bool) -> Result<()> {
     // Try to read settings from the configuration file.
-    let settings = match Settings::read(&config_path) {
-        Ok(settings) => settings,
-        Err(_) => {
-            // There's something wrong with the config file or something's missing.
-            // Try to read the config and fill missing values with defaults.
-            // This might be possible on version upgrade or first run.
-            let (settings, config_found) = Settings::read_with_defaults(&config_path)?;
+    let (settings, config_found) = Settings::read(&config_path)?;
 
-            // If there doesn't exist a config file yet, we save **once**.
-            // Hence, this should only happen on the very first time `pueued` is started.
-            if !config_found {
-                if let Err(error) = settings.save(&config_path) {
-                    bail!("Failed saving config file: {:?}.", error);
-                }
-            }
-
-            settings
+    // We couldn't find a configuration file.
+    // This probably means that Pueue has been started for the first time and we have to create a
+    // default config file once.
+    if !config_found {
+        if let Err(error) = settings.save(&config_path) {
+            bail!("Failed saving config file: {error:?}.");
         }
     };
 
@@ -78,7 +69,7 @@ pub async fn run(config_path: Option<PathBuf>, test: bool) -> Result<()> {
         Ok(Some(state)) => state,
         Ok(None) => State::new(&settings, config_path.clone()),
         Err(error) => {
-            warn!("Failed to restore previous state:\n {:?}", error);
+            warn!("Failed to restore previous state:\n {error:?}");
             warn!("Using clean state instead.");
             State::new(&settings, config_path.clone())
         }
@@ -111,10 +102,7 @@ fn init_directories(pueue_dir: &Path) {
     // Pueue base path
     if !pueue_dir.exists() {
         if let Err(error) = create_dir_all(&pueue_dir) {
-            panic!(
-                "Failed to create main directory at {:?} error: {:?}",
-                pueue_dir, error
-            );
+            panic!("Failed to create main directory at {pueue_dir:?} error: {error:?}");
         }
     }
 
@@ -122,10 +110,7 @@ fn init_directories(pueue_dir: &Path) {
     let log_dir = pueue_dir.join("log");
     if !log_dir.exists() {
         if let Err(error) = create_dir_all(&log_dir) {
-            panic!(
-                "Failed to create log directory at {:?} error: {:?}",
-                log_dir, error
-            );
+            panic!("Failed to create log directory at {log_dir:?} error: {error:?}",);
         }
     }
 
@@ -133,10 +118,7 @@ fn init_directories(pueue_dir: &Path) {
     let certs_dir = pueue_dir.join("certs");
     if !certs_dir.exists() {
         if let Err(error) = create_dir_all(&certs_dir) {
-            panic!(
-                "Failed to create certificate directory at {:?} error: {:?}",
-                certs_dir, error
-            );
+            panic!("Failed to create certificate directory at {certs_dir:?} error: {error:?}");
         }
     }
 
@@ -144,10 +126,7 @@ fn init_directories(pueue_dir: &Path) {
     let logs_dir = pueue_dir.join("task_logs");
     if !logs_dir.exists() {
         if let Err(error) = create_dir_all(&logs_dir) {
-            panic!(
-                "Failed to create task logs directory at {:?} error: {:?}",
-                logs_dir, error
-            );
+            panic!("Failed to create task logs directory at {logs_dir:?} error: {error:?}");
         }
     }
 }
@@ -181,13 +160,13 @@ fn setup_signal_panic_handling(settings: &Settings, sender: &Sender<Message>) ->
         // Cleanup the pid file
         if let Err(error) = pid::cleanup_pid_file(&settings_clone.shared.pueue_directory()) {
             println!("Failed to cleanup pid after panic.");
-            println!("{}", error);
+            println!("{error}");
         }
 
         // Remove the unix socket.
         if let Err(error) = socket_cleanup(&settings_clone.shared) {
             println!("Failed to cleanup socket after panic.");
-            println!("{}", error);
+            println!("{error}");
         }
 
         std::process::exit(1);

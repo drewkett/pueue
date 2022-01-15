@@ -13,7 +13,7 @@ use pueue_lib::network::secret::read_shared_secret;
 use pueue_lib::settings::Settings;
 use pueue_lib::state::PUEUE_DEFAULT_GROUP;
 
-use crate::cli::{CliArguments, SubCommand};
+use crate::cli::{CliArguments, GroupCommand, SubCommand};
 use crate::commands::edit::edit;
 use crate::commands::get_state;
 use crate::commands::local_follow::local_follow;
@@ -92,8 +92,7 @@ impl Client {
         // Backward compatibility should work, but some features might not work as expected.
         if version != crate_version!() {
             println!(
-                "Different daemon version detected '{}'. Consider restarting the daemon.",
-                version
+                "Different daemon version detected '{version}'. Consider restarting the daemon."
             );
         }
 
@@ -215,7 +214,11 @@ impl Client {
                 Ok(true)
             }
 
-            SubCommand::Follow { task_id, err } => {
+            SubCommand::Follow {
+                task_id,
+                err,
+                lines,
+            } => {
                 // Simple log output follows for local logs don't need any communication with the daemon.
                 // Thereby we handle this separately over here.
                 if self.settings.client.read_local_logs {
@@ -224,6 +227,7 @@ impl Client {
                         &self.settings.shared.pueue_directory(),
                         task_id,
                         *err,
+                        *lines,
                     )
                     .await?;
                     return Ok(true);
@@ -294,21 +298,18 @@ impl Client {
     /// Returns `Ok(())` if the action was confirmed.
     fn handle_user_confirmation(&self, action: &str, task_ids: &[usize]) -> Result<()> {
         // printing warning and prompt
-        println!(
-            "You are trying to {}: {}",
-            action,
-            task_ids
-                .iter()
-                .map(|t| format!("task{}", t))
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
+        let task_ids = task_ids
+            .iter()
+            .map(|t| format!("task{t}"))
+            .collect::<Vec<String>>()
+            .join(", ");
+        println!("You are trying to {action}: {task_ids}",);
 
         let mut input = String::new();
 
         loop {
             print!("Do you want to continue [Y/n]: ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
             input.clear();
             io::stdin().read_line(&mut input)?;
 
@@ -467,22 +468,18 @@ impl Client {
                 };
                 Ok(Message::Send(message))
             }
-            SubCommand::Group {
-                add,
-                parallel,
-                remove,
-            } => {
-                if let Some(group) = add {
+            SubCommand::Group { cmd } => match cmd {
+                Some(GroupCommand::Add { name, parallel }) => {
                     Ok(Message::Group(GroupMessage::Add {
-                        name: group.to_owned(),
+                        name: name.to_owned(),
                         parallel_tasks: parallel.to_owned(),
                     }))
-                } else if let Some(group) = remove {
-                    Ok(Message::Group(GroupMessage::Remove(group.to_owned())))
-                } else {
-                    Ok(Message::Group(GroupMessage::List))
                 }
-            }
+                Some(GroupCommand::Remove { name }) => {
+                    Ok(Message::Group(GroupMessage::Remove(name.to_owned())))
+                }
+                None => Ok(Message::Group(GroupMessage::List)),
+            },
             SubCommand::Status { .. } => Ok(Message::Status),
             SubCommand::Log {
                 task_ids,
@@ -499,10 +496,15 @@ impl Client {
                 };
                 Ok(Message::Log(message))
             }
-            SubCommand::Follow { task_id, err } => {
+            SubCommand::Follow {
+                task_id,
+                err,
+                lines,
+            } => {
                 let message = StreamRequestMessage {
                     task_id: *task_id,
                     err: *err,
+                    lines: *lines,
                 };
                 Ok(Message::StreamRequest(message))
             }
